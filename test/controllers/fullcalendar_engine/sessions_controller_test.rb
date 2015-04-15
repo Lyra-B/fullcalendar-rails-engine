@@ -1,7 +1,7 @@
 require 'test_helper'
 
 module FullcalendarEngine
-  class EventSeriesTest < ActiveSupport::TestCase
+  class SessionsControllerTest < ActionController::TestCase
     # test "the truth" do
     #   assert true
     # end

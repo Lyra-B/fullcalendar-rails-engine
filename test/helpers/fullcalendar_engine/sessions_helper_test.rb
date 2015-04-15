@@ -1,6 +1,6 @@
 require 'test_helper'
 
 module FullcalendarEngine
-  class EventsHelperTest < ActionView::TestCase
+  class SessionsHelperTest < ActionView::TestCase
   end
 end

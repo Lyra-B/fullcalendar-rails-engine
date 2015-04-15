@@ -3,7 +3,7 @@
  * Docs & License: http://arshaw.com/fullcalendar/
  * (c) 2013 Adam Shaw
  */
- 
+
 (function($) {
 
 
@@ -39,10 +39,10 @@ function transformOptions(sourceOptions, start, end) {
 	var data = $.extend({}, sourceOptions.data || {}, {
 		'start-min': formatDate(start, 'u'),
 		'start-max': formatDate(end, 'u'),
-		'singleevents': true,
+		'singlesessions': true,
 		'max-results': 9999
 	});
-	
+
 	var ctz = sourceOptions.currentTimezone;
 	if (ctz) {
 		data.ctz = ctz = ctz.replace(' ', '_');
@@ -55,7 +55,7 @@ function transformOptions(sourceOptions, start, end) {
 		startParam: false,
 		endParam: false,
 		success: function(data) {
-			var events = [];
+			var sessions = [];
 			if (data.feed.entry) {
 				$.each(data.feed.entry, function(i, entry) {
 					var startStr = entry['gd$when'][0]['startTime'];
@@ -74,7 +74,7 @@ function transformOptions(sourceOptions, start, end) {
 					if (allDay) {
 						addDays(end, -1); // make inclusive
 					}
-					events.push({
+					sessions.push({
 						id: entry['gCal$uid']['value'],
 						title: entry['title']['$t'],
 						url: url,
@@ -86,15 +86,15 @@ function transformOptions(sourceOptions, start, end) {
 					});
 				});
 			}
-			var args = [events].concat(Array.prototype.slice.call(arguments, 1));
+			var args = [sessions].concat(Array.prototype.slice.call(arguments, 1));
 			var res = applyAll(success, this, args);
 			if ($.isArray(res)) {
 				return res;
 			}
-			return events;
+			return sessions;
 		}
 	});
-	
+
 }
 
 

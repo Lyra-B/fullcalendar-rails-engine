@@ -1,0 +1,198 @@
+// Place all the behaviors and hooks related to the matching controller here.
+// All this logic will automatically be available in application.js.
+
+full_calendar_options = <%= FullcalendarEngine::Configuration.to_json.html_safe %>
+app_path              = "<%= FullcalendarEngine::Configuration["mount_path"] %>"
+
+$.extend(full_calendar_options, {
+  loading: function(bool){
+    if (bool)
+      $('#loading').show();
+    else
+      $('#loading').hide();
+  },
+  sessionDrop: function(session, dayDelta, minuteDelta, allDay, revertFunc){
+    FullcalendarEngine.Sessions.move(session, dayDelta, minuteDelta, allDay);
+  },
+  sessionResize: function(session, dayDelta, minuteDelta, revertFunc){
+    FullcalendarEngine.Sessions.resize(session, dayDelta, minuteDelta);
+  },
+  sessionClick: function(session, jsSession, view){
+    FullcalendarEngine.Sessions.showSessionDetails(session);
+  },
+  select: function( startDate, endDate, allDay, jsSession, view ) {
+    FullcalendarEngine.Form.display({
+      starttime: new Date(startDate.getTime()),
+      endtime:   new Date(endDate.getTime()),
+      allDay:    allDay
+    })
+  }
+})
+
+if (typeof(FullcalendarEngine) === 'undefined') { FullcalendarEngine = {}; }
+
+FullcalendarEngine = {
+  Form: {
+    display: function(options) {
+      if (typeof(options) == 'undefined') { options = {} }
+      FullcalendarEngine.Form.fetch(options)
+    },
+    render: function(options){
+      $('#session_form').trigger('reset');
+      var startTime = options['starttime'] || new Date(), endTime = options['endtime'] || new Date(startTime.getTime());
+      if(startTime.getTime() == endTime.getTime()) { endTime.setMinutes(startTime.getMinutes() + 15); }
+      FullcalendarEngine.setTime('#session_starttime', startTime)
+      FullcalendarEngine.setTime('#session_endtime', endTime)
+      $('#session_all_day').attr('checked', options['allDay'])
+      $('#create_session_dialog').dialog({
+        title: 'New Session',
+        modal: true,
+        width: 500,
+        close: function(event, ui) { $('#create_session_dialog').dialog('destroy') }
+      });
+    },
+    fetch: function(options){
+      $.ajax({
+        type: 'get',
+        dataType: 'script',
+        async: true,
+        url: FullcalendarEngine.app_path() + "/sessions/new",
+        success: function(){ FullcalendarEngine.Form.render(options) }
+      });
+    },
+    authenticity_token: function(){
+      return($('meta[name="csrf-token"]').attr("content"))
+    }
+  },
+  Sessions: {
+    move: function(session, dayDelta, minuteDelta, allDay){
+      $.ajax({
+        data: 'title=' + session.title + '&day_delta=' + dayDelta + '&minute_delta=' + minuteDelta + '&all_day=' + allDay + '&authenticity_token=' + FullcalendarEngine.Form.authenticity_token(),
+        dataType: 'script',
+        type: 'post',
+        url: FullcalendarEngine.app_path() + "/sessions/" + session.id + "/move",
+        error: function(xhr){
+          alert(JSON.parse(xhr.responseText)["message"])
+        }
+      });
+    },
+    resize: function(session, dayDelta, minuteDelta){
+      $.ajax({
+        data: 'title=' + session.title + '&day_delta=' + dayDelta + '&minute_delta=' + minuteDelta + '&authenticity_token=' + FullcalendarEngine.Form.authenticity_token(),
+        dataType: 'script',
+        type: 'post',
+        url: FullcalendarEngine.app_path() + "/sessions/" + session.id + "/resize",
+        error: function(xhr){
+          alert(JSON.parse(xhr.responseText)["message"])
+        }
+      });
+    },
+    edit: function(session_id){
+      $.ajax({
+        url: FullcalendarEngine.app_path() + "/sessions/" + session_id + "/edit",
+        success: function(data) {
+          $('#edit_session_description').html(data['form']);
+        }
+      });
+    },
+    delete: function(session_id, delete_all){
+      $.ajax({
+        data: 'authenticity_token=' + FullcalendarEngine.Form.authenticity_token() + '&delete_all=' + delete_all,
+        dataType: 'script',
+        type: 'delete',
+        url: FullcalendarEngine.app_path() + "/sessions/" + session_id,
+        success: FullcalendarEngine.Sessions.refetch_sessions_and_close_dialog
+      });
+    },
+    refetch_sessions_and_close_dialog: function() {
+      $('.calendar').fullCalendar('refetchSessions');
+      $('.dialog:visible').dialog('destroy');
+    },
+    showSessionDetails: function(session){
+      $('#session_desc_dialog').html('')
+      $session_description  = $('<div />').html(session.description).attr("id", "edit_session_description")
+      $session_actions      = $('<div />').attr("id", "session_actions")
+      $edit_session         = $('<span />').attr("id", "edit_session").html("<a href = 'javascript:void(0);' onclick ='FullcalendarEngine.Sessions.edit(" + session.id + ")'>Edit</a>");
+      $delete_session       = $('<span />').attr("id", "delete_session")
+      if (session.recurring) {
+        title = session.title + "(Recurring)";
+        // Cannot be refactored as of now, the event bubbling of the eventClick of the fullCalendar is the culprit
+        $delete_session.html("&nbsp; <a href = 'javascript:void(0);' onclick ='FullcalendarEngine.Sessions.delete(" + session.id + ", " + false + ")'>Delete Only This Occurrence</a>");
+        $delete_session.append("&nbsp;&nbsp; <a href = 'javascript:void(0);' onclick ='FullcalendarEngine.Sessions.delete(" + session.id + ", " + true + ")'>Delete All In Series</a>")
+        $delete_session.append("&nbsp;&nbsp; <a href = 'javascript:void(0);' onclick ='FullcalendarEngine.Sessions.delete(" + session.id + ", \"future\")'>Delete All Future Sessions</a>")
+      } else {
+        title = session.title;
+        $delete_session.html("<a href = 'javascript:void(0);' onclick ='FullcalendarEngine.Sessions.delete(" + session.id + ", " + false + ")'>Delete</a>");
+      }
+      $session_actions.append($edit_session).append(" | ").append($delete_session)
+      $('#session_desc_dialog').append($session_description).append($session_actions)
+      $('#session_desc_dialog').dialog({
+        title: title,
+        modal: true,
+        width: 500,
+        close: function(event, ui){ $('#session_desc_dialog').html(''); $('#session_desc_dialog').dialog('destroy') }
+      });
+    },
+    showPeriodAndFrequency: function(value){
+      switch (value) {
+        case 'Daily':
+          $('#period').html('day');
+          $('#frequency').show();
+          break;
+        case 'Weekly':
+          $('#period').html('week');
+          $('#frequency').show();
+          break;
+        case 'Monthly':
+          $('#period').html('month');
+          $('#frequency').show();
+          break;
+        case 'Yearly':
+          $('#period').html('year');
+          $('#frequency').show();
+          break;
+        default:
+          $('#frequency').hide();
+      }
+    }
+  },
+  setTime: function(type, time) {
+    var $year = $(type + '_1i'), $month = $(type + '_2i'), $day = $(type + '_3i'), $hour = $(type + '_4i'), $minute = $(type + '_5i')
+    $year.val(time.getFullYear());
+    $month.prop('selectedIndex', time.getMonth());
+    $day.prop('selectedIndex', time.getDate() - 1);
+    $hour.prop('selectedIndex', time.getHours());
+    $minute.prop('selectedIndex', time.getMinutes());
+  },
+  app_path: function(){
+    return (app_path || window.location.pathname.match(/\/(\w)+/)[0])
+  }
+}
+
+$(document).ready(function(){
+  $('#create_session_dialog, #session_desc_dialog').on('submit', "#session_form", function(session) {
+    var $spinner = $('.spinner');
+    session.preventDefault();
+    $.ajax({
+      type: "POST",
+      data: $(this).serialize(),
+      url: $(this).attr('action'),
+      beforeSend: show_spinner,
+      complete: hide_spinner,
+      success: FullcalendarEngine.Sessions.refetch_sessions_and_close_dialog,
+      error: handle_error
+    });
+
+    function show_spinner() {
+      $spinner.show();
+    }
+
+    function hide_spinner() {
+      $spinner.hide();
+    }
+
+    function handle_error(xhr) {
+      alert(xhr.responseText);
+    }
+  })
+});

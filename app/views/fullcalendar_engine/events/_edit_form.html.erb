@@ -1,4 +1,4 @@
-<%= form_for @event, :html => { :id => 'event_form' } do |f| %>
+<%= form_for @session, :html => { :id => 'session_form' } do |f| %>
 <p>
   <%=f.label :title %>
   <br/>
@@ -26,14 +26,14 @@
 
 <%=f.hidden_field :commit_button, :value => ""%>
 <p>
-  <%if @event.event_series -%>
-  <%=f.submit 'Update Only This Occurrence', :onclick => "document.getElementById('event_commit_button').value = this.value"%>
-  <%=f.submit 'Update All Occurrence', :onclick => "document.getElementById('event_commit_button').value = this.value"%>
-  <%=f.submit 'Update All Following Occurrence', :onclick => "document.getElementById('event_commit_button').value = this.value"%>
+  <%if @session.session_series -%>
+  <%=f.submit 'Update Only This Occurrence', :onclick => "document.getElementById('session_commit_button').value = this.value"%>
+  <%=f.submit 'Update All Occurrence', :onclick => "document.getElementById('session_commit_button').value = this.value"%>
+  <%=f.submit 'Update All Following Occurrence', :onclick => "document.getElementById('session_commit_button').value = this.value"%>
   <%else-%>
-  <%=f.submit 'Update', :onclick => "document.getElementById('event_commit_button').value = this.value"%>
+  <%=f.submit 'Update', :onclick => "document.getElementById('session_commit_button').value = this.value"%>
   <%end-%>
-  
-  <span id = "updating_events" class="spinner" style = "display:none;">Updating, Please wait...</span>
+
+  <span id = "updating_sessions" class="spinner" style = "display:none;">Updating, Please wait...</span>
 </p>
 <%end %>
