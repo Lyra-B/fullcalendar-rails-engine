@@ -107,12 +107,19 @@ module FullcalendarEngine
     end
 
     def session_params
-      params.require(:session).permit('title', 'description', 'starttime', 'endtime', 'all_day', 'period', 'frequency', 'commit_button')
+      params.require(:session).permit('title', 'description', 'starttime', 'endtime', 'all_day', 'period', 'frequency', 'commit_button', 'coach_id', 'administrator_id')
     end
 
     def determine_session_type
       if params[:session][:period] == "Does not repeat"
         @session = Session.new(session_params)
+        if user_signed_in?
+          if current_user.type == "Coach"
+            @session.coach_id = current_user.id
+          elsif current_user.type == "Administrator"
+            @session.administrator_id = current_user.id
+          end
+        end
       else
         @session = SessionSeries.new(session_params)
       end
