@@ -26,20 +26,12 @@ module FullcalendarEngine
       start_time = Time.at(params[:start].to_i).to_formatted_s(:db)
       end_time   = Time.at(params[:end].to_i).to_formatted_s(:db)
 
-      @allsessions = Session.where('
+      @sessions = Session.where('
                   (starttime >= :start_time and endtime <= :end_time) or
                   (starttime >= :start_time and endtime > :end_time and starttime <= :end_time) or
                   (starttime <= :start_time and endtime >= :start_time and endtime <= :end_time) or
                   (starttime <= :start_time and endtime > :end_time)',
                   start_time: start_time, end_time: end_time)
-      if user_signed_in?
-        if current_user.type == "Coach"
-          @sessions = @allsessions.where(coach_id: current_user.id)
-        elsif current_user.type == "Administrator"
-          @sessions = @allsessions.where(administrator_id: current_user.id)
-        end
-      end
-
       sessions = []
       @sessions.each do |session|
         sessions << { id: session.id,
@@ -121,13 +113,6 @@ module FullcalendarEngine
     def determine_session_type
       if params[:session][:period] == "Does not repeat"
         @session = Session.new(session_params)
-        if user_signed_in?
-          if current_user.type == "Coach"
-            @session.coach_id = current_user.id
-          elsif current_user.type == "Administrator"
-            @session.administrator_id = current_user.id
-          end
-        end
       else
         @session = SessionSeries.new(session_params)
       end
