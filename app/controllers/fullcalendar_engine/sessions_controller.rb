@@ -97,7 +97,7 @@ module FullcalendarEngine
       render nothing: true
     end
 
-    private
+    protected
 
     def load_session
       @session = Session.where(:id => params[:id]).first
